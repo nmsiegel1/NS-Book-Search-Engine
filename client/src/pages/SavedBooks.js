@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Jumbotron,
   Container,
@@ -8,15 +8,27 @@ import {
 } from "react-bootstrap";
 import { useQuery, useMutation } from "@apollo/client";
 
-import { getMe, deleteBook } from "../utils/API";
 import Auth from "../utils/auth";
 import { removeBookId } from "../utils/localStorage";
-import { GET_ME } from "../utils/queries";
+import { QUERY_ME } from "../utils/queries";
 import { REMOVE_BOOK } from "../utils/mutations";
 
 const SavedBooks = () => {
-  const { loading, data } = useQuery(GET_ME);
-  const [removeBook] = useMutation(REMOVE_BOOK);
+  const { loading, data } = useQuery(QUERY_ME);
+  const [removeBook] = useMutation(REMOVE_BOOK, {
+    update(cache) {
+      try {
+        // update me array's cache
+        const { me } = cache.readQuery({ query: QUERY_ME });
+        cache.writeQuery({
+          query: QUERY_ME,
+          data: { me: { ...me, savedBooks: [...me.savedBooks] } },
+        });
+      } catch (e) {
+        console.warn("First book deleted by user!");
+      }
+    },
+  });
 
   const userData = data?.me || [];
 
@@ -30,7 +42,7 @@ const SavedBooks = () => {
 
     try {
       await removeBook({
-        variables: { bookId },
+        variables: { bookId: bookId },
       });
       // upon success, remove book's id from localStorage
       removeBookId(bookId);
@@ -40,7 +52,7 @@ const SavedBooks = () => {
   };
 
   // if data isn't here yet, say so
-  if (!userDataLength) {
+  if (loading) {
     return <h2>LOADING...</h2>;
   }
 

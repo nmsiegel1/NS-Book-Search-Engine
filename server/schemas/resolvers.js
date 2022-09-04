@@ -57,8 +57,9 @@ const resolvers = {
           { $pull: { savedBooks: { bookId: args.bookId } } },
           { new: true }
         );
-        throw new AuthenticationError("You need to be logged in!");
+        return updatedUser;
       }
+      throw new AuthenticationError("You need to be logged in!");
     },
   },
 };
